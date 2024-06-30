@@ -1,0 +1,57 @@
+#define BLYNK_TEMPLATE_ID "TMPL3Yavc_e01"
+#define BLYNK_TEMPLATE_NAME "Temperature and humidity"
+#define BLYNK_AUTH_TOKEN "fv6lbLTF2d9XOhG9u7xn9Cp6-XPzYPXM"
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <DHT.h>
+
+char auth[] = BLYNK_AUTH_TOKEN;
+
+char ssid[] = "AARIVTECHNOLOGIES";  // type your wifi name
+char pass[] = "1286793808";  // type your wifi password
+
+#define DHTPIN 2          // Mention the digital pin where you connected 
+#define DHTTYPE DHT11     // DHT 11  
+#define MOTOR_PIN 5       // GPIO pin to control the motor (D1 on most ESP8266 boards)
+DHT dht(DHTPIN, DHTTYPE);
+BlynkTimer timer;
+
+void sendSensor() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature(); // or dht.readTemperature(true) for Fahrenheit
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Blynk.virtualWrite(V0, t);
+  Blynk.virtualWrite(V1, h);    
+  Serial.print("Temperature : ");
+  Serial.print(t);
+  Serial.print("    Humidity : ");
+  Serial.println(h);
+
+  if (t > 25) {
+    // Blynk.email("shameer50@gmail.com", "Alert", "Temperature over 28C!");
+    Blynk.logEvent("alert");
+    digitalWrite(MOTOR_PIN, HIGH);  // Turn the motor on
+  } else {
+    digitalWrite(MOTOR_PIN, LOW);   // Turn the motor off
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  Blynk.begin(auth, ssid, pass);
+  dht.begin();
+  pinMode(MOTOR_PIN, OUTPUT);  // Set the motor pin as output
+  digitalWrite(MOTOR_PIN, LOW); // Ensure motor is off at startup
+  timer.setInterval(2500L, sendSensor);
+}
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
